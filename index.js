@@ -9,22 +9,35 @@ let usersList = [];
 
 const createUserSchema = yup.object().shape({
     name: yup.string().required(),
-    cpf: yup.string().min(11).max(11).required()
+    cpf: yup.string().min(11).max(11).required(),
+    id: yup.string().default(() => { 
+        return uuidv4()}).transform( () => { return uuidv4(); 
+    }),
+    notes: yup.array().default( () => { 
+        return [] }).transform( () => { return [];
+    })
 }); 
 
 const createNotesSchema = yup.object().shape({
-    title: yup.string(),
-    content: yup.string()
-}); 
+    title: yup.string().required(),
+    content: yup.string().required(),
+    id: yup.string().default(() => { 
+        return uuidv4()}).transform( () => { return uuidv4(); 
+    }),
+    created_at: yup.date().default(() => { 
+        return new Date() 
+    })
+});
 
 const validate = (schema) => async (req, res, next) => {
-    const resource = req.body;
+    const body = req.body;
+
     try {
-      await schema.validate(resource);
+      const validatedData = await schema.validate(body, { abortEarly: false, stripUnknown: true});
+      req.validatedData = validatedData;
       next();
     } catch (e) {
-      console.error(e);
-      res.status(400).json({ error: e.errors.join(', ') });
+      return res.status(400).json({ [e.name]: e.errors});
     };
 };
 
@@ -46,20 +59,17 @@ app.get('/users', (req, res) => {
 
 
 app.post('/users', validate(createUserSchema), (req, res) => {
-    const { name, cpf } = req.body;
+    const userData = req.validatedData;
 
-    const foundedCpf = usersList.find(user => user.cpf === cpf);
+    const foundedCpf = usersList.find(user => user.cpf === userData.cpf);
     
     if (foundedCpf) {
         return res.status(404).json({ message: 'user already exists!' });
-    }   
+    }       
 
-    const user = { name: name, cpf: cpf, id: uuidv4(), notes: [] };
-
-    usersList.push(user);  
+    usersList.push(userData);  
     
-    res.status(201).json(user);
-    
+    res.status(201).json(userData);    
 });
 
 
@@ -76,7 +86,7 @@ app.patch('/users/:cpf', verifyCpf, (req, res) => {
     if(body.cpf){
         userFounded.cpf = body.cpf
     }
-    res.json({message: "User is updated", "users": userFounded});
+    res.json({message: "User is updated", "users": usersList});
 });
 
 
