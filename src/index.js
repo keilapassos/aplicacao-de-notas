@@ -49,8 +49,20 @@ const verifyCpf = (req, res, next) => {
     if (!foundedCpf) {
         return res.status(404).json({ error: "invalid cpf - user is not registered" });
     }  
+    req.userFounded = foundedCpf
     next();
 } 
+
+const verifyNoteId = (req, res, next) => {
+    const { id } = req.params;
+    const noteId = req.userFounded.notes.find(user => user.id === id);
+    
+    if (!noteId) {
+        return res.status(404).json({ error: "invalid note - id is not registered" });
+    }  
+    req.noteId = noteId
+    next();
+}
 
 
 app.get('/users', (req, res) => {
@@ -127,39 +139,30 @@ app.get('/users/:cpf/notes', verifyCpf, (req, res) => {
 });
 
 
-app.patch('/users/:cpf/notes/:id', verifyCpf, (req, res) => {
-    const { cpf, id } = req.params;
-    let body = req.body;
-
-    const userFounded = usersList.find(user => user.cpf === cpf)
-    const getNoteId = userFounded.notes.find(note => note.id === id)
+app.patch('/users/:cpf/notes/:id', verifyCpf, verifyNoteId, (req, res) => {
+    const { noteId } = req
     
-    if(userFounded && getNoteId){
+    let { title, content } = req.body;
 
-        if(body.title){
-            getNoteId.title = body.title
-        }
+    noteId.title = title;
+    noteId.content = content
+    noteId.updated_at = new Date()
 
-        if(body.content){
-            getNoteId.content = body.content
-        }
-
-        getNoteId.updated_at = new Date()
-    }    
-    res.json([getNoteId]);
+    res.json([noteId]);
 });
 
-app.delete('/users/:cpf/notes/:id', verifyCpf, (req, res) => {
-    const { cpf, id } = req.params;
+app.delete('/users/:cpf/notes/:id', verifyCpf, verifyNoteId, (req, res) => {
+    const { id } = req.params; 
+    
+    const { userFounded } = req;
+    
+    let updatedNotes = userFounded.notes.filter(note => note.id !== id)
 
-    const userFounded = usersList.find(user => user.cpf === cpf)
-    let getNoteId = userFounded.notes.find(note => note.id === id)
+    updatedNotes.splice(id, 0);
 
-    if(userFounded && getNoteId){
-        userFounded.notes.pop(getNoteId)  
-        getNoteId = []      
-    }       
-    res.json(getNoteId);
+    userFounded.notes = updatedNotes
+
+    res.json([]);
 });
 
 
