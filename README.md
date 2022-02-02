@@ -1,4 +1,5 @@
 # Aplicação de Notas
+Projeto proposto pela escola Kenzie Academy Brasil.
 Nessa entrega desenvolvemos um serviço simples onde usuários podem gerenciar anotações, utilizando Node.js e o Framework Express.js.
 
 ## Como instalar e rodar?
